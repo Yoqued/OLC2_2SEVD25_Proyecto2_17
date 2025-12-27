@@ -247,16 +247,60 @@ df['numero_productos_distintos'] = df['numero_productos_distintos'].fillna(media
 
 df = df[df['reseña_id'].notna()]
 
-
-# 4. IMPUTACION O ELIMINACIÓN
-
-# TEXTO RESEÑA
-
-df = df[df['texto_reseña'].notna() & (df['texto_reseña'] != '')]
-
-
 # 4. IMPUTACIÓN O ELIMINACIÓN 
 
 # LONGITUD RESEÑA
 
 df['longitud_reseña'] = df['longitud_reseña'].fillna(0)
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import (
+    silhouette_score,
+    calinski_harabasz_score,
+    davies_bouldin_score
+)
+
+# Columnas numéricas que usarás para clustering de clientes
+cols_cluster_numerico = [
+    'frecuencia_compra',
+    'monto_total_gastado',
+    'monto_promedio_compra',
+    'dias_desde_ultima_compra',
+    'antiguedad_cliente_meses',
+    'numero_productos_distintos'
+]
+
+# Matriz numérica
+X_num = df[cols_cluster_numerico].copy()
+
+# Normalización (importante para K-Means)
+scaler = StandardScaler()
+X_num_scaled = scaler.fit_transform(X_num)
+
+# Elegir K (manual)
+k_num = 6
+
+kmeans_num = KMeans(n_clusters=k_num, random_state=42, n_init=10)
+clusters_num = kmeans_num.fit_predict(X_num_scaled)
+
+df['cluster_clientes'] = clusters_num
+
+# Métricas
+sil_num = silhouette_score(X_num_scaled, clusters_num)
+inercia_num = kmeans_num.inertia_
+ch_num = calinski_harabasz_score(X_num_scaled, clusters_num)
+db_num = davies_bouldin_score(X_num_scaled, clusters_num)
+
+print("=== CLUSTERING NUMÉRICO (CLIENTES) ===")
+print("K (manual) =", k_num)
+print("Silhouette:", sil_num)
+print("Inercia:", inercia_num)
+print("Calinski-Harabasz:", ch_num)
+print("Davies-Bouldin:", db_num)
+
+# Perfil rápido por cluster (promedios por grupo)
+perfil_clientes = df.groupby('cluster_clientes')[cols_cluster_numerico].mean()
+print("\nPerfil por cluster (promedios):")
+print(perfil_clientes)
