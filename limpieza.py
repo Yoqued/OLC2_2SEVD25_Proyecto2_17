@@ -16,6 +16,8 @@ df = pd.read_csv("data_prueba_proyecto2.csv")
 df.info()
 df.describe()
 
+# -------------------------- AQUÍ EMPIEZA LA LIMPIEZA --------------------------
+
 # 1. TIPO CORRECTO DE LOS DATOS
 
 # Columnas numéricas para el análisis
@@ -236,6 +238,10 @@ df = df[df['reseña_id'].notna()]
 df.info()
 df.describe()
 
+
+
+# -------------------------- ENTRENAMIENTO (CLUSTERING) NUMÉRICO --------------------------
+
 """# CLUSTERING (NUMÉRICO)"""
 
 from sklearn.preprocessing import StandardScaler
@@ -266,7 +272,21 @@ X_num_scaled = scaler.fit_transform(X_num)
 # Elegir K (manual)
 k_num = 6
 
-kmeans_num = KMeans(n_clusters=k_num, random_state=42, n_init=10)
+# Elegir (manual)
+max_iter_num = 300
+
+kmeans_num = KMeans(
+    n_clusters = k_num,
+    max_iter = max_iter_num,
+    random_state = 42,
+    n_init = 10
+)
+
+# HIPERPARÁMETROS QUE TIENEN QUE COLOCAR 
+# NÚMERO DE CLUSTERS (K) RANGO: 2 A 10
+# MÁXIMAS ITERACIONES (max_iter) RANGO 100 A 500
+# NÚMERO DE REINICIOS (n_init) RANGO 5 A 30
+
 clusters_num = kmeans_num.fit_predict(X_num_scaled)
 
 df['cluster_clientes'] = clusters_num
@@ -277,6 +297,9 @@ inercia_num = kmeans_num.inertia_
 ch_num = calinski_harabasz_score(X_num_scaled, clusters_num)
 db_num = davies_bouldin_score(X_num_scaled, clusters_num)
 
+
+
+# -------------------------- MÉTRICAS QUE HAY QUE MOSTRAR --------------------------
 print("=== CLUSTERING NUMÉRICO (CLIENTES) ===")
 print("K (manual) =", k_num)
 print("Silhouette:", sil_num)
@@ -289,75 +312,3 @@ perfil_clientes = df.groupby('cluster_clientes')[cols_cluster_numerico].mean()
 print("\nPerfil por cluster (promedios):")
 print(perfil_clientes)
 
-# =========================
-# 6. CLUSTERING (TEXTO / RESEÑAS)
-# =========================
-
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-# Asegurar texto (por seguridad)
-df['texto_reseña'] = df['texto_reseña'].astype(str)
-
-# Normalización ligera de texto (para TF-IDF)
-def normalizar_texto(s: str) -> str:
-    s = s.lower().strip()
-    s = re.sub(r'\d+', ' ', s)          # quitar números
-    s = re.sub(r'[^\w\s]', ' ', s)      # quitar puntuación
-    s = re.sub(r'\s+', ' ', s).strip()  # espacios extra
-    return s
-
-df['texto_reseña_norm'] = df['texto_reseña'].apply(normalizar_texto)
-
-# Vectorización TF-IDF (con n-gramas 1-2, muy útil en reseñas)
-tfidf = TfidfVectorizer(
-    stop_words=None,      # luego podemos poner stopwords en español si quieres
-    ngram_range=(1, 2),
-    min_df=2              # si tu dataset es pequeño, cambia a 1
-)
-
-X_text = tfidf.fit_transform(df['texto_reseña_norm'])
-
-# Elegir K para reseñas (manual)
-k_text = 5
-
-kmeans_text = KMeans(n_clusters=k_text, random_state=42, n_init=10)
-clusters_text = kmeans_text.fit_predict(X_text)
-
-df['cluster_resenas'] = clusters_text
-
-# Métricas
-sil_text = silhouette_score(X_text, clusters_text)
-inercia_text = kmeans_text.inertia_
-ch_text = calinski_harabasz_score(X_text, clusters_text)
-db_text = davies_bouldin_score(X_text, clusters_text)
-
-# "k" asociado a cada métrica (mismo k elegido)
-k_silueta_text = k_text
-k_inercia_text = k_text
-
-print("\n=== CLUSTERING TEXTO (RESEÑAS) ===")
-print("K (manual) =", k_text)
-print("K (Silueta) =", k_silueta_text, "| Silhouette:", sil_text)
-print("K (Inercia) =", k_inercia_text, "| Inercia:", inercia_text)
-print("Calinski-Harabasz:", ch_text)
-print("Davies-Bouldin:", db_text)
-
-# Extra: palabras/frases más representativas por cluster
-feature_names = tfidf.get_feature_names_out()
-centers = kmeans_text.cluster_centers_
-
-top_n = 10
-print("\nTop términos por cluster (reseñas):")
-for i in range(k_text):
-    top_idx = centers[i].argsort()[-top_n:][::-1]
-    top_terms = [feature_names[j] for j in top_idx]
-    print(f"Cluster {i}: {top_terms}")
-
-
-# =========================
-# 7. GUARDAR RESULTADOS
-# =========================
-
-df.to_csv("clientes_con_clusters.csv", index=False)
-print("\nArchivo guardado: clientes_con_clusters.csv")
