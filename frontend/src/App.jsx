@@ -287,9 +287,9 @@ function Badge({ text, color = "#93c5fd" }) {
 }
 
 /* ---------------- 1) Upload + Preprocess ---------------- */
-
 function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
   const [file, setFile] = useState(null);
+  const [uploadId, setUploadId] = useState(null); // ✅ NUEVO
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [loadingPre, setLoadingPre] = useState(false);
 
@@ -306,6 +306,10 @@ function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
     try {
       setLoadingUpload(true);
       const res = await uploadCsv(file);
+
+      // ✅ Guardar upload_id para el preprocess
+      if (res?.upload_id) setUploadId(res.upload_id);
+
       setGlobalMessage(res.message || "CSV subido correctamente.");
     } catch (err) {
       setGlobalError(err.message);
@@ -317,9 +321,19 @@ function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
   const handlePreprocess = async () => {
     setGlobalError("");
     setGlobalMessage("");
+
+    // ✅ Si aún no has subido CSV, no hay upload_id
+    if (!uploadId) {
+      setGlobalError("Primero sube el CSV para obtener upload_id.");
+      return;
+    }
+
     try {
       setLoadingPre(true);
-      const res = await preprocessData();
+
+      // ✅ Enviar upload_id al backend
+      const res = await preprocessData({ upload_id: uploadId });
+
       setGlobalMessage(res.message || "Preprocesamiento completado.");
     } catch (err) {
       setGlobalError(err.message);
@@ -335,11 +349,15 @@ function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
         Sube el CSV y ejecuta el preprocesamiento (limpieza + preparación para clustering).
       </p>
 
+      {/* ✅ Mostrar uploadId para que veas que sí se guardó */}
+      {!!uploadId && (
+        <div style={{ marginBottom: "12px", color: "#9ca3af", fontSize: "13px" }}>
+          upload_id actual: <b style={{ color: "#e5e7eb" }}>{uploadId}</b>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-        <Card
-          title="Archivo CSV"
-          description="Selecciona el archivo y súbelo al servidor."
-        >
+        <Card title="Archivo CSV" description="Selecciona el archivo y súbelo al servidor.">
           <form onSubmit={handleUpload} style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <input
               type="file"
@@ -357,9 +375,15 @@ function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
           title="Preprocesamiento"
           description="Ejecuta la transformación requerida: limpieza, tipos, features, etc."
         >
-          <SuccessButton onClick={handlePreprocess} disabled={loadingPre}>
+          <SuccessButton onClick={handlePreprocess} disabled={loadingPre || !uploadId}>
             {loadingPre ? "Procesando..." : "Preprocesar"}
           </SuccessButton>
+
+          {!uploadId && (
+            <div style={{ marginTop: "10px", fontSize: "12px", color: "#9ca3af" }}>
+              * Primero sube el CSV para habilitar el preprocesamiento.
+            </div>
+          )}
         </Card>
       </div>
 

@@ -47,9 +47,9 @@ export async function preprocessData(payload = {}) {
     body: JSON.stringify(payload),
     credentials: "include",
   });
-
   return parseResponse(res);
 }
+
 
 // POST /api/model/train/
 export async function trainClusters(config) {
