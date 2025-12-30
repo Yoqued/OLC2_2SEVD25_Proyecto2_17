@@ -16,6 +16,7 @@ df = pd.read_csv("data_prueba_proyecto2.csv")
 df.info()
 df.describe()
 
+
 # -------------------------- AQUÍ EMPIEZA LA LIMPIEZA --------------------------
 
 # 1. TIPO CORRECTO DE LOS DATOS
@@ -239,8 +240,9 @@ df.info()
 df.describe()
 
 
-
 # -------------------------- ENTRENAMIENTO (CLUSTERING) NUMÉRICO --------------------------
+
+
 
 """# CLUSTERING (NUMÉRICO)"""
 
@@ -275,12 +277,16 @@ k_num = 6
 # Elegir (manual)
 max_iter_num = 300
 
+# Elegir (manual)
+n_init_num = 10
+
 kmeans_num = KMeans(
     n_clusters = k_num,
     max_iter = max_iter_num,
     random_state = 42,
-    n_init = 10
+    n_init = n_init_num
 )
+
 
 # HIPERPARÁMETROS QUE TIENEN QUE COLOCAR 
 # NÚMERO DE CLUSTERS (K) RANGO: 2 A 100
@@ -298,8 +304,8 @@ ch_num = calinski_harabasz_score(X_num_scaled, clusters_num)
 db_num = davies_bouldin_score(X_num_scaled, clusters_num)
 
 
-
 # -------------------------- MÉTRICAS QUE HAY QUE MOSTRAR --------------------------
+
 print("=== CLUSTERING NUMÉRICO (CLIENTES) ===")
 print("K (manual) =", k_num)
 print("Silhouette:", sil_num)
@@ -311,4 +317,82 @@ print("Davies-Bouldin:", db_num)
 perfil_clientes = df.groupby('cluster_clientes')[cols_cluster_numerico].mean()
 print("\nPerfil por cluster (promedios):")
 print(perfil_clientes)
+
+
+
+
+
+
+
+# =========================
+# CLUSTERING (TEXTO / RESEÑAS)
+# =========================
+
+import numpy as np
+import pandas as pd
+
+from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import normalize
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+
+# 1) Corpus limpio
+text_series = df["texto_reseña"].astype(str).fillna("").str.strip()
+text_series = text_series[text_series != ""]
+df_text = df.loc[text_series.index].copy()
+corpus = text_series.tolist()
+
+# 2) Modelo de sentence embeddings (multilingüe, ligero y bueno)
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+
+# 3) Embeddings (batching para eficiencia)
+emb = model.encode(
+    corpus,
+    batch_size=64,
+    show_progress_bar=True,
+    convert_to_numpy=True,
+    normalize_embeddings=True  # deja embeddings listos para similitud coseno
+)
+
+# 4) Clustering eficiente
+k_text = 6
+kmeans = MiniBatchKMeans(
+    n_clusters=k_text,
+    random_state=42,
+    batch_size=2048,
+    max_iter=200,
+    n_init="auto"
+)
+labels = kmeans.fit_predict(emb)
+df_text["cluster_reseñas"] = labels
+
+# 5) Métricas (ya es denso y pequeño -> rápido)
+# Silhouette: si son muchísimas reseñas, muestrea
+n = emb.shape[0]
+sample_size = min(5000, n)
+if sample_size < n:
+    rng = np.random.RandomState(42)
+    idx = rng.choice(n, size=sample_size, replace=False)
+    sil = silhouette_score(emb[idx], labels[idx], metric="cosine")
+else:
+    sil = silhouette_score(emb, labels, metric="cosine")
+
+ch = calinski_harabasz_score(emb, labels)
+db = davies_bouldin_score(emb, labels)
+inercia = kmeans.inertia_
+
+
+# -------------------------- MOSTRAR TAMBIÉN ESTAS MÉTRICAS --------------------------
+
+print("=== RESEÑAS (Sentence Embeddings + MiniBatchKMeans) ===")
+print("K =", k_text)
+print("Inercia:", inercia)
+print("Silhouette (cosine, sample):", sil)
+print("Calinski-Harabasz:", ch)
+print("Davies-Bouldin:", db)
+
+# 6) Guardar en df original
+df.loc[df_text.index, "cluster_reseñas"] = df_text["cluster_reseñas"]
+
+df
 
