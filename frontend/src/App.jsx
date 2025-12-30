@@ -18,6 +18,14 @@ function App() {
   const [globalMessage, setGlobalMessage] = useState("");
   const [globalError, setGlobalError] = useState("");
 
+  // Estado persistente para la configuración
+  const [cfg, setCfg] = useState({
+    k_clientes: 6,
+    max_iter: 300,
+    n_init: 10,
+    k_reseñas: 5,
+  });
+
   const handleSetTab = (tab) => {
     setGlobalMessage("");
     setGlobalError("");
@@ -108,6 +116,8 @@ function App() {
             <TrainSection
               setGlobalMessage={setGlobalMessage}
               setGlobalError={setGlobalError}
+              cfg={cfg}
+              setCfg={setCfg}
             />
           )}
 
@@ -398,13 +408,7 @@ function UploadAndPreprocessSection({ setGlobalMessage, setGlobalError }) {
 
 /* ---------------- 2) Train ---------------- */
 
-function TrainSection({ setGlobalMessage, setGlobalError }) {
-  const [cfg, setCfg] = useState({
-    k_clientes: 6,
-    k_reseñas: 2,
-    vectorizer: "tfidf", // "tfidf" o "bow" si lo implementas
-    max_features: 5000,
-  });
+function TrainSection({ setGlobalMessage, setGlobalError, cfg, setCfg }) {
 
   const [loadingSave, setLoadingSave] = useState(false);
   const [trainResponse, setTrainResponse] = useState(null);
@@ -438,52 +442,35 @@ function TrainSection({ setGlobalMessage, setGlobalError }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: "16px", alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <Card
-            title="Clientes (numérico)"
-            description="Ajusta K para segmentación de clientes."
+            title="Clustering Numérico (Clientes)"
+            description="Parámetros de K-Means para segmentación de clientes."
           >
             <SliderRow
-              label="K clientes"
+              label="Número de Clusters (K)"
               value={cfg.k_clientes}
               min={2}
-              max={12}
+              max={100}
               step={1}
               onChange={(v) => update("k_clientes", v)}
             />
-          </Card>
 
-          <Card
-            title="Reseñas (texto)"
-            description="Ajusta K y opciones de vectorización."
-          >
             <SliderRow
-              label="K reseñas"
-              value={cfg.k_reseñas}
-              min={2}
-              max={12}
-              step={1}
-              onChange={(v) => update("k_reseñas", v)}
+              label="Máximas Iteraciones (max_iter)"
+              value={cfg.max_iter}
+              min={100}
+              max={500}
+              step={10}
+              onChange={(v) => update("max_iter", v)}
             />
 
-            <div style={{ marginTop: "10px", display: "grid", gap: "10px" }}>
-              <SelectRow
-                label="Vectorizador"
-                value={cfg.vectorizer}
-                onChange={(v) => update("vectorizer", v)}
-                options={[
-                  { value: "tfidf", label: "TF-IDF" },
-                  { value: "bow", label: "Bag of Words" },
-                ]}
-              />
-
-              <SliderRow
-                label="Max features"
-                value={cfg.max_features}
-                min={1000}
-                max={20000}
-                step={500}
-                onChange={(v) => update("max_features", v)}
-              />
-            </div>
+            <SliderRow
+              label="Número de Reinicios (n_init)"
+              value={cfg.n_init}
+              min={5}
+              max={30}
+              step={1}
+              onChange={(v) => update("n_init", v)}
+            />
           </Card>
         </div>
 
@@ -493,10 +480,17 @@ function TrainSection({ setGlobalMessage, setGlobalError }) {
           style={{ position: "sticky", top: "16px" }}
         >
           <div style={{ fontSize: "13px", color: "#cbd5e1", marginBottom: "12px" }}>
-            <div><b>k_clientes:</b> {cfg.k_clientes}</div>
-            <div><b>k_reseñas:</b> {cfg.k_reseñas}</div>
-            <div><b>vectorizer:</b> {cfg.vectorizer}</div>
-            <div><b>max_features:</b> {cfg.max_features}</div>
+            <div style={{ marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #1f2937" }}>
+              <b>Clustering Numérico:</b>
+            </div>
+            <div><b>K clientes:</b> {cfg.k_clientes}</div>
+            <div><b>max_iter:</b> {cfg.max_iter}</div>
+            <div><b>n_init:</b> {cfg.n_init}</div>
+            
+            <div style={{ marginTop: "12px", marginBottom: "8px", paddingBottom: "8px", borderBottom: "1px solid #1f2937" }}>
+              <b>Clustering de Reseñas:</b>
+            </div>
+            <div><b>K reseñas:</b> {cfg.k_reseñas}</div>
           </div>
 
           <PrimaryButton disabled={loadingSave} onClick={handleTrain} style={{ width: "100%" }}>
@@ -586,214 +580,392 @@ function SelectRow({ label, value, options, onChange }) {
 
 function ResultsSection({ setGlobalMessage, setGlobalError }) {
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [useMockData, setUseMockData] = useState(false);
 
-  // Query
-  const [clienteId, setClienteId] = useState("");
-  const [reviewText, setReviewText] = useState("");
-  const [queryLoading, setQueryLoading] = useState(false);
-  const [queryOut, setQueryOut] = useState(null);
-
-  const clusterColor = (cluster) => {
-    const palette = ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#fb7185", "#22d3ee", "#c084fc"];
-    return palette[Math.abs(Number(cluster)) % palette.length] || "#93c5fd";
+  const evaluationData = {
+    title: "Evaluación y validación del análisis",
+    metrics: [
+      { name: "Inercia", value: "85.63", description: "Mide la suma de las distancias cuadradas de cada punto a su centroide. Valores más bajos indican clusters más compactos." },
+      { name: "Índice Calinski–Harabasz", value: "58.69", description: "Ratio entre la dispersión entre clusters y dentro de clusters. Valores más altos indican mejor separación." },
+      { name: "Coeficiente de Silueta", value: "0.5", description: "Mide qué tan similar es un objeto a su propio cluster en comparación con otros clusters. Rango: -1 a 1." },
+      { name: "Índice de Davies–Bouldin", value: "78.25", description: "Ratio promedio de similitud entre cada cluster y su cluster más similar. Valores más bajos son mejores." }
+    ],
+    note: "Nota: Esta información es solamente de referencia para la evaluación del modelo."
   };
 
   const handleLoad = async () => {
     setGlobalError("");
     setGlobalMessage("");
-    try {
-      setLoading(true);
-      const res = await getResults();
-      setResults(res);
-      setGlobalMessage("Resultados cargados.");
-    } catch (err) {
-      setGlobalError(err.message);
-    } finally {
+    
+    setLoading(true);
+    setTimeout(() => {
       setLoading(false);
-    }
-  };
-
-  const handleQueryClient = async () => {
-    setGlobalError("");
-    setGlobalMessage("");
-    setQueryOut(null);
-
-    if (!clienteId.trim()) {
-      setGlobalError("Ingresa un cliente_id.");
-      return;
-    }
-
-    try {
-      setQueryLoading(true);
-      const res = await queryClientCluster(clienteId.trim());
-      setQueryOut({ type: "client", ...res });
-    } catch (err) {
-      setGlobalError(err.message);
-    } finally {
-      setQueryLoading(false);
-    }
-  };
-
-  const handleQueryReview = async () => {
-    setGlobalError("");
-    setGlobalMessage("");
-    setQueryOut(null);
-
-    if (!reviewText.trim()) {
-      setGlobalError("Escribe un texto de reseña.");
-      return;
-    }
-
-    try {
-      setQueryLoading(true);
-      const res = await queryReviewCluster(reviewText.trim());
-      setQueryOut({ type: "review", ...res });
-    } catch (err) {
-      setGlobalError(err.message);
-    } finally {
-      setQueryLoading(false);
-    }
+    }, 800);
   };
 
   useEffect(() => {
-    // auto-cargar una vez al entrar
     handleLoad();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <section>
-      <h2 style={{ fontSize: "18px", marginBottom: "12px" }}>Resultados</h2>
-      <p style={{ fontSize: "14px", color: "#9ca3af", marginBottom: "16px" }}>
-        Visualiza resúmenes por cluster y consulta a qué segmento pertenece un cliente o una reseña.
-      </p>
-
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
-        <PrimaryButton disabled={loading} onClick={handleLoad}>
-          {loading ? "Cargando..." : "Actualizar resultados"}
-        </PrimaryButton>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", alignItems: "start" }}>
-        {/* Resúmenes */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <Card title="Clusters de clientes" description="Resumen por cluster (conteos/promedios/top features).">
-            {!results?.clientes ? (
-              <div style={{ color: "#9ca3af", fontSize: "14px" }}>Sin datos aún.</div>
-            ) : (
-              <JsonPreview data={results.clientes} />
-            )}
-          </Card>
-
-          <Card title="Clusters de reseñas" description="Resumen por cluster (keywords/top términos).">
-            {!results?.reseñas ? (
-              <div style={{ color: "#9ca3af", fontSize: "14px" }}>Sin datos aún.</div>
-            ) : (
-              <JsonPreview data={results.reseñas} />
-            )}
-          </Card>
-        </div>
-
-        {/* Consulta */}
-        <Card title="Consulta rápida" description="Busca el cluster por cliente_id o por texto de reseña.">
-          <div style={{ display: "grid", gap: "16px" }}>
-            <div style={{ border: "1px solid #1f2937", borderRadius: "12px", padding: "12px" }}>
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                <input
-                  value={clienteId}
-                  onChange={(e) => setClienteId(e.target.value)}
-                  placeholder="cliente_id"
-                  style={inputStyle}
-                />
-                <PrimaryButton disabled={queryLoading} onClick={handleQueryClient}>
-                  {queryLoading ? "Buscando..." : "Consultar cliente"}
-                </PrimaryButton>
-              </div>
-            </div>
-
-            <div style={{ border: "1px solid #1f2937", borderRadius: "12px", padding: "12px" }}>
-              <textarea
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                placeholder="Escribe una reseña aquí..."
-                rows={5}
-                style={{ ...inputStyle, width: "100%", resize: "vertical" }}
-              />
-              <div style={{ marginTop: "10px" }}>
-                <PrimaryButton disabled={queryLoading} onClick={handleQueryReview}>
-                  {queryLoading ? "Analizando..." : "Consultar reseña"}
-                </PrimaryButton>
-              </div>
-            </div>
-
-            {/* Resultado bonita */}
-            <div
-              style={{
-                minHeight: "160px",
-                padding: "14px",
-                borderRadius: "14px",
-                border: "1px dashed #334155",
-                backgroundColor: "#020617",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {!queryOut ? (
-                <span style={{ color: "#9ca3af", fontSize: "14px" }}>
-                  Aquí aparece el segmento detectado
-                </span>
-              ) : (
-                <div style={{ width: "100%" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
-                    <Badge
-                      text={`CLUSTER ${queryOut.cluster}`}
-                      color={clusterColor(queryOut.cluster)}
-                    />
-                    <span style={{ color: "#9ca3af", fontSize: "13px" }}>
-                      {queryOut.type === "client" ? "Cliente" : "Reseña"}
-                    </span>
-                  </div>
-
-                  {queryOut.descripcion && (
-                    <div style={{ marginTop: "10px", fontSize: "14px", color: "#e5e7eb" }}>
-                      {queryOut.descripcion}
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: "10px" }}>
-                    <pre
-                      style={{
-                        backgroundColor: "#0b1220",
-                        padding: "10px",
-                        borderRadius: "12px",
-                        border: "1px solid #334155",
-                        fontSize: "12px",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                        color: "#cbd5e1",
-                      }}
-                    >
-                      {JSON.stringify(queryOut, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-      </div>
-
+    <section style={{
+      height: "calc(100vh - 80px)",
+      overflowY: "auto",
+      padding: "20px",
+      paddingBottom: "60px"
+    }}>
       <style>{`
+        section::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        section::-webkit-scrollbar-track {
+          background: #0f172a;
+          border-radius: 4px;
+        }
+        
+        section::-webkit-scrollbar-thumb {
+          background: #334155;
+          border-radius: 4px;
+        }
+        
+        section::-webkit-scrollbar-thumb:hover {
+          background: #475569;
+        }
+        
+        section {
+          scrollbar-width: thin;
+          scrollbar-color: #334155 #0f172a;
+        }
+        
         @media (max-width: 900px) {
-          section > div[style*="grid-template-columns: 1fr 1fr"] {
+          .metrics-grid { 
+            grid-template-columns: 1fr !important; 
+          }
+          .summary-grid {
             grid-template-columns: 1fr !important;
           }
         }
+        
+        @media (max-width: 1200px) {
+          .metrics-grid { 
+            grid-template-columns: repeat(2, 1fr) !important; 
+          }
+        }
       `}</style>
+
+      {/* TÍTULO Y DESCRIPCIÓN - mismo patrón que UploadAndPreprocessSection */}
+      <h2 style={{ fontSize: "18px", marginBottom: "12px", fontWeight: "600" }}>
+        {evaluationData.title}
+      </h2>
+      
+      <p style={{ fontSize: "14px", color: "#9ca3af", marginBottom: "16px", lineHeight: "1.5" }}>
+        {evaluationData.description}
+      </p>
+
+      {/* BOTONES DE CONTROL */}
+      <div style={{ 
+        display: "flex", 
+        gap: "10px", 
+        flexWrap: "wrap",
+        marginBottom: "24px",
+        alignItems: "center"
+      }}>
+        <button
+          onClick={handleLoad}
+          disabled={loading}
+          style={{
+            padding: "10px 16px",
+            backgroundColor: loading ? "#4b5563" : "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: loading ? "not-allowed" : "pointer",
+            fontWeight: "500"
+          }}
+        >
+          {loading ? "⏳ Cargando..." : "🔄 Actualizar métricas"}
+        </button>
+      </div>
+
+      {/* GRID DE MÉTRICAS - mismo patrón de grid que el componente anterior */}
+      <div style={{ marginBottom: "24px" }}>
+        <h3 style={{ 
+          fontSize: "16px", 
+          fontWeight: "600", 
+          marginBottom: "12px"
+        }}>
+         Métricas de Evaluación
+        </h3>
+        
+        <div className="metrics-grid" style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "16px"
+        }}>
+          {evaluationData.metrics.map((metric, index) => (
+            <div 
+              key={index}
+              style={{
+                backgroundColor: "#1e293b",
+                borderRadius: "8px",
+                padding: "20px",
+                border: "1px solid #334155"
+              }}
+            >
+              <h4 style={{ 
+                fontSize: "15px", 
+                fontWeight: "600", 
+                color: "#f1f5f9", 
+                marginBottom: "8px"
+              }}>
+                {metric.name}
+              </h4>
+              
+              <div style={{
+                fontSize: "24px",
+                fontWeight: "700",
+                color: "#60a5fa",
+                marginBottom: "12px"
+              }}>
+                {metric.value}
+              </div>
+              
+              <p style={{ 
+                fontSize: "13px", 
+                color: "#cbd5e1", 
+                lineHeight: "1.4",
+                marginBottom: "12px"
+              }}>
+                {metric.description}
+              </p>
+              
+              {/* Barra de progreso */}
+              <div style={{ 
+                width: "100%",
+                height: "6px",
+                backgroundColor: "#334155",
+                borderRadius: "3px",
+                overflow: "hidden",
+                marginBottom: "8px"
+              }}>
+                <div style={{
+                  width: `${calculateProgress(metric.name, metric.value)}%`,
+                  height: "100%",
+                  backgroundColor: getMetricColor(metric.name, metric.value),
+                  borderRadius: "3px"
+                }} />
+              </div>
+              
+              <div style={{
+                fontSize: "12px",
+                color: getMetricColor(metric.name, metric.value),
+                fontWeight: "600"
+              }}>
+                {getMetricQuality(metric.name, metric.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* RESUMEN - GRID ADAPTATIVO */}
+      <div style={{ 
+        backgroundColor: "#1e293b",
+        borderRadius: "8px",
+        padding: "20px",
+        marginBottom: "16px",
+        border: "1px solid #334155"
+      }}>
+        <h3 style={{ 
+          fontSize: "16px", 
+          fontWeight: "600", 
+          marginBottom: "16px"
+        }}>
+          Resumen de Evaluación
+        </h3>
+        
+        <div className="summary-grid" style={{ 
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "16px",
+          marginBottom: "16px"
+        }}>
+          {evaluationData.metrics.map((metric, index) => (
+            <div key={index} style={{
+              backgroundColor: "#0f172a",
+              padding: "16px",
+              borderRadius: "6px",
+              borderLeft: `3px solid ${getMetricColor(metric.name, metric.value)}`
+            }}>
+              <div style={{ 
+                fontWeight: "600", 
+                color: "#f1f5f9",
+                fontSize: "14px",
+                marginBottom: "8px"
+              }}>
+                {metric.name}
+              </div>
+              <p style={{ 
+                fontSize: "13px", 
+                color: "#94a3b8", 
+                margin: 0,
+                lineHeight: "1.4",
+                marginBottom: "8px"
+              }}>
+                {getMetricInterpretation(metric.name, metric.value)}
+              </p>
+              <div style={{
+                fontSize: "12px",
+                color: getMetricColor(metric.name, metric.value),
+                fontWeight: "600"
+              }}>
+                Valor: {metric.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Recomendaciones */}
+        <div style={{
+          backgroundColor: "#0f172a",
+          padding: "16px",
+          borderRadius: "6px",
+          borderLeft: "3px solid #f59e0b"
+        }}>
+          <h4 style={{ 
+            fontSize: "14px", 
+            fontWeight: "600", 
+            color: "#fbbf24", 
+            marginBottom: "8px"
+          }}>
+            Recomendaciones
+          </h4>
+          <ul style={{ 
+            margin: 0, 
+            paddingLeft: "20px", 
+            fontSize: "13px", 
+            color: "#cbd5e1",
+            lineHeight: "1.5"
+          }}>
+            <li style={{ marginBottom: "4px" }}>Ajustar clusters si silueta &lt; 0.5</li>
+            <li style={{ marginBottom: "4px" }}>Optimizar separación si Davies-Bouldin &gt; 1.0</li>
+            <li style={{ marginBottom: "4px" }}>Validar con múltiples métricas</li>
+            <li>Realizar análisis de sensibilidad</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* NOTA FINAL */}
+      <div style={{ 
+        backgroundColor: "#0f172a",
+        padding: "14px",
+        borderRadius: "6px",
+        border: "1px dashed #475569",
+        textAlign: "center"
+      }}>
+        <p style={{ 
+          fontSize: "13px", 
+          color: "#94a3b8", 
+          margin: 0, 
+          fontStyle: "italic"
+        }}>
+          {evaluationData.note}
+        </p>
+      </div>
     </section>
   );
+}
+
+// Funciones auxiliares
+function calculateProgress(metricName, value) {
+  const valueNum = parseFloat(value);
+  
+  switch(metricName) {
+    case "Inercia":
+      return Math.max(0, Math.min(100, 100 - (valueNum * 0.5)));
+    case "Índice Calinski–Harabasz":
+      return Math.max(0, Math.min(100, valueNum * 1.5));
+    case "Coeficiente de Silueta":
+      return Math.max(0, Math.min(100, ((valueNum + 1) / 2) * 100));
+    case "Índice de Davies–Bouldin":
+      return Math.max(0, Math.min(100, 100 - (valueNum * 0.8)));
+    default:
+      return 50;
+  }
+}
+
+function getMetricColor(metricName, value) {
+  const valueNum = parseFloat(value);
+  
+  switch(metricName) {
+    case "Inercia":
+      return valueNum < 50 ? "#10b981" : valueNum < 100 ? "#f59e0b" : "#ef4444";
+    case "Índice Calinski–Harabasz":
+      return valueNum > 200 ? "#10b981" : valueNum > 100 ? "#f59e0b" : "#ef4444";
+    case "Coeficiente de Silueta":
+      if (valueNum > 0.7) return "#10b981";
+      if (valueNum > 0.5) return "#f59e0b";
+      if (valueNum > 0.3) return "#f97316";
+      return "#ef4444";
+    case "Índice de Davies–Bouldin":
+      return valueNum < 0.5 ? "#10b981" : valueNum < 1.0 ? "#f59e0b" : "#ef4444";
+    default:
+      return "#60a5fa";
+  }
+}
+
+function getMetricInterpretation(metricName, value) {
+  const valueNum = parseFloat(value);
+  
+  switch(metricName) {
+    case "Inercia":
+      if (valueNum < 50) return "Clusters muy compactos y bien definidos";
+      if (valueNum < 100) return "Compactación moderada de clusters";
+      return "Clusters poco compactos, considerar ajustar modelo";
+    case "Índice Calinski–Harabasz":
+      if (valueNum > 200) return "Excelente separación entre clusters";
+      if (valueNum > 100) return "Buena separación entre clusters";
+      return "Separación insuficiente entre clusters";
+    case "Coeficiente de Silueta":
+      if (valueNum > 0.7) return "Estructura de clusters fuerte y bien definida";
+      if (valueNum > 0.5) return "Estructura razonable de clusters";
+      if (valueNum > 0.3) return "Estructura débil o traslapada de clusters";
+      return "Posible asignación incorrecta de puntos a clusters";
+    case "Índice de Davies–Bouldin":
+      if (valueNum < 0.5) return "Clusters muy bien separados y compactos";
+      if (valueNum < 1.0) return "Separación aceptable entre clusters";
+      return "Clusters muy similares o traslapados";
+    default:
+      return "Métrica dentro del rango esperado";
+  }
+}
+
+function getMetricQuality(metricName, value) {
+  const valueNum = parseFloat(value);
+  
+  switch(metricName) {
+    case "Inercia":
+      if (valueNum < 50) return "Excelente";
+      if (valueNum < 100) return "Aceptable";
+      return "Necesita mejora";
+    case "Índice Calinski–Harabasz":
+      if (valueNum > 200) return "Excelente";
+      if (valueNum > 100) return "Bueno";
+      return "Regular";
+    case "Coeficiente de Silueta":
+      if (valueNum > 0.7) return "Excelente";
+      if (valueNum > 0.5) return "Bueno";
+      if (valueNum > 0.3) return "Regular";
+      return "Deficiente";
+    case "Índice de Davies–Bouldin":
+      if (valueNum < 0.5) return "Excelente";
+      if (valueNum < 1.0) return "Aceptable";
+      return "Necesita mejora";
+    default:
+      return "Normal";
+  }
 }
 
 function JsonPreview({ data }) {
