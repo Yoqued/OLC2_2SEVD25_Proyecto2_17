@@ -1,0 +1,74 @@
+{
+  "clientes": {
+    "k_clientes": 6,
+    "max_iter": 300,
+    "n_init": 10,
+    "silhouette_clientes": 0.1315205475935867,
+    "inercia_clientes": 3754.732572232653,
+    "calinski_clientes": 118.87908287826004,
+    "davies_clientes": 1.6984547228930047,
+    "perfil_clientes": [
+      {
+        "cluster_clientes": 0,
+        "frecuencia_compra": 23.7289,
+        "monto_total_gastado": 14584.8496,
+        "monto_promedio_compra": 803.9895,
+        "dias_desde_ultima_compra": 178.9759,
+        "antiguedad_cliente_meses": 79.1446,
+        "numero_productos_distintos": 33.3313
+      },
+      {
+        "cluster_clientes": 1,
+        "frecuencia_compra": 63.2316,
+        "monto_total_gastado": 7045.6272,
+        "monto_promedio_compra": 941.9433,
+        "dias_desde_ultima_compra": 242.226,
+        "antiguedad_cliente_meses": 147.6441,
+        "numero_productos_distintos": 40.4746
+      },
+      {
+        "cluster_clientes": 2,
+        "frecuencia_compra": 57.4857,
+        "monto_total_gastado": 6011.9529,
+        "monto_promedio_compra": 378.7083,
+        "dias_desde_ultima_compra": 98.875,
+        "antiguedad_cliente_meses": 75.3071,
+        "numero_productos_distintos": 29.9536
+      },
+      {
+        "cluster_clientes": 3,
+        "frecuencia_compra": 29.4667,
+        "monto_total_gastado": 9899.8751,
+        "monto_promedio_compra": 533.8528,
+        "dias_desde_ultima_compra": 198.6111,
+        "antiguedad_cliente_meses": 186.1056,
+        "numero_productos_distintos": 19.2139
+      },
+      {
+        "cluster_clientes": 4,
+        "frecuencia_compra": 78.1934,
+        "monto_total_gastado": 15817.7733,
+        "monto_promedio_compra": 736.9362,
+        "dias_desde_ultima_compra": 149.9365,
+        "antiguedad_cliente_meses": 133.1878,
+        "numero_productos_distintos": 21.5304
+      },
+      {
+        "cluster_clientes": 5,
+        "frecuencia_compra": 56.0064,
+        "monto_total_gastado": 6755.0839,
+        "monto_promedio_compra": 1155.2053,
+        "dias_desde_ultima_compra": 220.2532,
+        "antiguedad_cliente_meses": 78.4295,
+        "numero_productos_distintos": 14.3718
+      }
+    ]
+  },
+  "reseñas": {
+    "k_reseñas": 4,
+    "silhouette_reseñas": 0.3707258403301239,
+    "inercia_reseñas": 412.511474609375,
+    "calinski_reseñas": 189.3402013221877,
+    "davies_reseñas": 1.6202790633145217
+  }
+}

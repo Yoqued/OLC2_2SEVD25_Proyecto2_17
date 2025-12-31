@@ -1,0 +1,272 @@
+{
+  "clientes": {
+    "k_clientes": 28,
+    "max_iter": 420,
+    "n_init": 23,
+    "silhouette_clientes": 0.15714315153250463,
+    "inercia_clientes": 1959.8401296569605,
+    "calinski_clientes": 74.21307132730641,
+    "davies_clientes": 1.4166592571309324,
+    "perfil_clientes": [
+      {
+        "cluster_clientes": 0,
+        "frecuencia_compra": 26.1282,
+        "monto_total_gastado": 12205.009,
+        "monto_promedio_compra": 1295.3949,
+        "dias_desde_ultima_compra": 267.641,
+        "antiguedad_cliente_meses": 81.2821,
+        "numero_productos_distintos": 29.8846
+      },
+      {
+        "cluster_clientes": 1,
+        "frecuencia_compra": 13.7949,
+        "monto_total_gastado": 8320.2821,
+        "monto_promedio_compra": 816.1059,
+        "dias_desde_ultima_compra": 210.0513,
+        "antiguedad_cliente_meses": 94.4872,
+        "numero_productos_distintos": 42.3077
+      },
+      {
+        "cluster_clientes": 2,
+        "frecuencia_compra": 81.04,
+        "monto_total_gastado": 3094.9816,
+        "monto_promedio_compra": 324.7708,
+        "dias_desde_ultima_compra": 278.96,
+        "antiguedad_cliente_meses": 192.32,
+        "numero_productos_distintos": 32.74
+      },
+      {
+        "cluster_clientes": 3,
+        "frecuencia_compra": 58.6429,
+        "monto_total_gastado": 15581.7539,
+        "monto_promedio_compra": 247.0086,
+        "dias_desde_ultima_compra": 280.3393,
+        "antiguedad_cliente_meses": 96.9643,
+        "numero_productos_distintos": 37.6786
+      },
+      {
+        "cluster_clientes": 4,
+        "frecuencia_compra": 18.6944,
+        "monto_total_gastado": 15607.1778,
+        "monto_promedio_compra": 803.5081,
+        "dias_desde_ultima_compra": 220.9583,
+        "antiguedad_cliente_meses": 183.6389,
+        "numero_productos_distintos": 10.0556
+      },
+      {
+        "cluster_clientes": 5,
+        "frecuencia_compra": 28.3548,
+        "monto_total_gastado": 5680.9003,
+        "monto_promedio_compra": 775.8435,
+        "dias_desde_ultima_compra": 301.3226,
+        "antiguedad_cliente_meses": 63.0,
+        "numero_productos_distintos": 12.9032
+      },
+      {
+        "cluster_clientes": 6,
+        "frecuencia_compra": 26.1842,
+        "monto_total_gastado": 14890.3139,
+        "monto_promedio_compra": 905.0561,
+        "dias_desde_ultima_compra": 74.7632,
+        "antiguedad_cliente_meses": 54.3158,
+        "numero_productos_distintos": 36.3553
+      },
+      {
+        "cluster_clientes": 7,
+        "frecuencia_compra": 77.0263,
+        "monto_total_gastado": 12789.3229,
+        "monto_promedio_compra": 932.0584,
+        "dias_desde_ultima_compra": 97.4737,
+        "antiguedad_cliente_meses": 200.8947,
+        "numero_productos_distintos": 13.6579
+      },
+      {
+        "cluster_clientes": 8,
+        "frecuencia_compra": 67.7551,
+        "monto_total_gastado": 5527.9241,
+        "monto_promedio_compra": 1171.3767,
+        "dias_desde_ultima_compra": 244.3367,
+        "antiguedad_cliente_meses": 121.551,
+        "numero_productos_distintos": 8.8776
+      },
+      {
+        "cluster_clientes": 9,
+        "frecuencia_compra": 29.2812,
+        "monto_total_gastado": 3480.7478,
+        "monto_promedio_compra": 1086.5719,
+        "dias_desde_ultima_compra": 269.4375,
+        "antiguedad_cliente_meses": 192.0,
+        "numero_productos_distintos": 36.6562
+      },
+      {
+        "cluster_clientes": 10,
+        "frecuencia_compra": 25.0244,
+        "monto_total_gastado": 14630.7322,
+        "monto_promedio_compra": 362.0763,
+        "dias_desde_ultima_compra": 62.2195,
+        "antiguedad_cliente_meses": 164.1951,
+        "numero_productos_distintos": 25.9268
+      },
+      {
+        "cluster_clientes": 11,
+        "frecuencia_compra": 77.7568,
+        "monto_total_gastado": 14493.5616,
+        "monto_promedio_compra": 279.563,
+        "dias_desde_ultima_compra": 115.1622,
+        "antiguedad_cliente_meses": 79.1622,
+        "numero_productos_distintos": 17.7162
+      },
+      {
+        "cluster_clientes": 12,
+        "frecuencia_compra": 20.5405,
+        "monto_total_gastado": 5591.4846,
+        "monto_promedio_compra": 1082.7173,
+        "dias_desde_ultima_compra": 89.2973,
+        "antiguedad_cliente_meses": 129.7297,
+        "numero_productos_distintos": 11.9595
+      },
+      {
+        "cluster_clientes": 13,
+        "frecuencia_compra": 76.9375,
+        "monto_total_gastado": 6832.5598,
+        "monto_promedio_compra": 980.3894,
+        "dias_desde_ultima_compra": 279.7604,
+        "antiguedad_cliente_meses": 122.8333,
+        "numero_productos_distintos": 40.3333
+      },
+      {
+        "cluster_clientes": 14,
+        "frecuencia_compra": 67.1875,
+        "monto_total_gastado": 3514.6606,
+        "monto_promedio_compra": 332.3628,
+        "dias_desde_ultima_compra": 77.0938,
+        "antiguedad_cliente_meses": 163.375,
+        "numero_productos_distintos": 36.3125
+      },
+      {
+        "cluster_clientes": 15,
+        "frecuencia_compra": 40.1765,
+        "monto_total_gastado": 4048.9521,
+        "monto_promedio_compra": 298.1706,
+        "dias_desde_ultima_compra": 63.1471,
+        "antiguedad_cliente_meses": 54.3529,
+        "numero_productos_distintos": 20.1765
+      },
+      {
+        "cluster_clientes": 16,
+        "frecuencia_compra": 33.3846,
+        "monto_total_gastado": 15815.2746,
+        "monto_promedio_compra": 1168.9958,
+        "dias_desde_ultima_compra": 187.4231,
+        "antiguedad_cliente_meses": 195.9231,
+        "numero_productos_distintos": 37.7308
+      },
+      {
+        "cluster_clientes": 17,
+        "frecuencia_compra": 82.6364,
+        "monto_total_gastado": 4486.4818,
+        "monto_promedio_compra": 1135.8532,
+        "dias_desde_ultima_compra": 272.4318,
+        "antiguedad_cliente_meses": 29.3636,
+        "numero_productos_distintos": 24.5455
+      },
+      {
+        "cluster_clientes": 18,
+        "frecuencia_compra": 20.0811,
+        "monto_total_gastado": 5160.6251,
+        "monto_promedio_compra": 311.1159,
+        "dias_desde_ultima_compra": 170.973,
+        "antiguedad_cliente_meses": 177.3784,
+        "numero_productos_distintos": 21.8784
+      },
+      {
+        "cluster_clientes": 19,
+        "frecuencia_compra": 67.2564,
+        "monto_total_gastado": 15315.0726,
+        "monto_promedio_compra": 1020.6205,
+        "dias_desde_ultima_compra": 98.9487,
+        "antiguedad_cliente_meses": 68.9231,
+        "numero_productos_distintos": 9.7692
+      },
+      {
+        "cluster_clientes": 20,
+        "frecuencia_compra": 13.9677,
+        "monto_total_gastado": 16143.6039,
+        "monto_promedio_compra": 538.9252,
+        "dias_desde_ultima_compra": 206.2903,
+        "antiguedad_cliente_meses": 55.7097,
+        "numero_productos_distintos": 20.3226
+      },
+      {
+        "cluster_clientes": 21,
+        "frecuencia_compra": 77.075,
+        "monto_total_gastado": 16564.9748,
+        "monto_promedio_compra": 1050.4365,
+        "dias_desde_ultima_compra": 271.6,
+        "antiguedad_cliente_meses": 62.775,
+        "numero_productos_distintos": 28.1875
+      },
+      {
+        "cluster_clientes": 22,
+        "frecuencia_compra": 72.5385,
+        "monto_total_gastado": 16069.0182,
+        "monto_promedio_compra": 704.4997,
+        "dias_desde_ultima_compra": 97.0513,
+        "antiguedad_cliente_meses": 177.1282,
+        "numero_productos_distintos": 39.3333
+      },
+      {
+        "cluster_clientes": 23,
+        "frecuencia_compra": 73.5,
+        "monto_total_gastado": 13956.6411,
+        "monto_promedio_compra": 413.2972,
+        "dias_desde_ultima_compra": 283.1667,
+        "antiguedad_cliente_meses": 157.5833,
+        "numero_productos_distintos": 11.2222
+      },
+      {
+        "cluster_clientes": 24,
+        "frecuencia_compra": 63.0323,
+        "monto_total_gastado": 4994.1816,
+        "monto_promedio_compra": 294.0884,
+        "dias_desde_ultima_compra": 238.7258,
+        "antiguedad_cliente_meses": 48.7742,
+        "numero_productos_distintos": 34.2903
+      },
+      {
+        "cluster_clientes": 25,
+        "frecuencia_compra": 61.5455,
+        "monto_total_gastado": 6064.2176,
+        "monto_promedio_compra": 1274.2018,
+        "dias_desde_ultima_compra": 101.5152,
+        "antiguedad_cliente_meses": 150.3939,
+        "numero_productos_distintos": 38.3182
+      },
+      {
+        "cluster_clientes": 26,
+        "frecuencia_compra": 51.0882,
+        "monto_total_gastado": 11939.54,
+        "monto_promedio_compra": 444.4679,
+        "dias_desde_ultima_compra": 290.5735,
+        "antiguedad_cliente_meses": 182.8824,
+        "numero_productos_distintos": 31.3235
+      },
+      {
+        "cluster_clientes": 27,
+        "frecuencia_compra": 78.75,
+        "monto_total_gastado": 9377.6842,
+        "monto_promedio_compra": 904.6125,
+        "dias_desde_ultima_compra": 98.0833,
+        "antiguedad_cliente_meses": 62.0625,
+        "numero_productos_distintos": 37.1667
+      }
+    ]
+  },
+  "reseñas": {
+    "k_reseñas": 6,
+    "silhouette_reseñas": 0.5096331834793091,
+    "inercia_reseñas": 290.85894775390625,
+    "calinski_reseñas": 243.97166505415473,
+    "davies_reseñas": 1.318922468815436
+  }
+}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { getEvaluation } from "./api";
+import "./App.css";
+
 
 import {
   uploadCsv,
@@ -32,30 +34,8 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        width: "100vw",
-	height: "100vh",
-	margin: 0,
-	padding: 0,
-	display: "flex",
-	flexDirection: "column",
-	fontFamily: "system-ui, sans-serif",
-	backgroundColor: "#0f172a",
-	color: "#e5e7eb",
-	overflow: "hidden",
-      }}
-    >
-      <header
-        style={{
-          padding: "14px 24px",
-          borderBottom: "1px solid #1e293b",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          backgroundColor: "#020617",
-        }}
-      >
+    <div className="app-shell">
+      <header className="app-header">
         <h1 style={{ fontSize: "20px", fontWeight: "650", letterSpacing: "0.2px" }}>
           InsightCluster
         </h1>
@@ -64,30 +44,22 @@ function App() {
         </span>
       </header>
 
-      <div style={{ display: "flex", flex: 1 }}>
-        {/* Sidebar */}
-        <nav
-          style={{
-            width: "280px",
-            borderRight: "1px solid #1e293b",
-            padding: "16px 12px",
-            backgroundColor: "#020617",
-          }}
-        >
-          <NavButton active={activeTab === "upload"} onClick={() => handleSetTab("upload")}>
+      <div className="app-body">
+        <nav className="app-sidebar">
+          <NavButton classNameName="nav-btn" active={activeTab === "upload"} onClick={() => handleSetTab("upload")}>
             1. Carga masiva
           </NavButton>
 
-          <NavButton active={activeTab === "train"} onClick={() => handleSetTab("train")}>
+          <NavButton classNameName="nav-btn" active={activeTab === "train"} onClick={() => handleSetTab("train")}>
             2. Configurar & Entrenar
           </NavButton>
 
-          <NavButton active={activeTab === "results"} onClick={() => handleSetTab("results")}>
+          <NavButton classNameName="nav-btn" active={activeTab === "results"} onClick={() => handleSetTab("results")}>
             3. Metricas
           </NavButton>
 
-          <NavButton active={activeTab === "eval_export"} onClick={() => handleSetTab("eval_export")}>
-            4. Evaluación & Exportar
+          <NavButton classNameName="nav-btn" active={activeTab === "perfil"} onClick={() => handleSetTab("perfil")}>
+            4. Perfil por cluster
           </NavButton>
 
           <div style={{ marginTop: "14px", fontSize: "12px", color: "#9ca3af", padding: "0 8px" }}>
@@ -95,14 +67,9 @@ function App() {
           </div>
         </nav>
 
-        {/* Contenido */}
-        <main style={{ flex: 1, padding: "26px" }}>
-          {!!globalMessage && (
-            <AlertBox kind="success">{globalMessage}</AlertBox>
-          )}
-          {!!globalError && (
-            <AlertBox kind="error">{globalError}</AlertBox>
-          )}
+        <main className="app-main">
+          {!!globalMessage && <AlertBox kind="success">{globalMessage}</AlertBox>}
+          {!!globalError && <AlertBox kind="error">{globalError}</AlertBox>}
 
           {activeTab === "upload" && (
             <UploadAndPreprocessSection
@@ -131,16 +98,18 @@ function App() {
             />
           )}
 
-          {activeTab === "eval_export" && (
-            <EvalExportSection
+          {activeTab === "perfil" && (
+            <PerfilClusterSection
               setGlobalMessage={setGlobalMessage}
               setGlobalError={setGlobalError}
+              uploadId={uploadId}
             />
           )}
         </main>
       </div>
     </div>
   );
+
 }
 
 /* ---------------- UI Helpers ---------------- */
@@ -735,6 +704,196 @@ function ResultsSection({ setGlobalMessage, setGlobalError, uploadId }) {
         }
       `}</style>
     </section>
+  );
+}
+
+
+function PerfilClusterSection({ setGlobalMessage, setGlobalError, uploadId }) {
+  const [loading, setLoading] = useState(false);
+  const [sizes, setSizes] = useState([]);
+  const [rows, setRows] = useState([]);
+
+  const load = async () => {
+    setGlobalError("");
+    setGlobalMessage("");
+
+    const uid = typeof uploadId === "string" ? uploadId : uploadId?.upload_id;
+    if (!uid) {
+      setGlobalError("Primero sube el CSV, preprocesa y entrena (upload_id inválido).");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const data = await getEvaluation(uid);
+      const perfil =
+        data?.clientes?.perfil_clientes ||
+        data?.perfil_clientes ||
+        [];
+
+      const sizeTable =
+      data?.clientes?.cluster_size_clientes ||
+      data?.cluster_size_clientes ||
+      [];
+      
+
+      if (!Array.isArray(perfil) || perfil.length === 0) {
+        setRows([]);
+        setGlobalError("No hay perfil_clientes aún. Asegúrate de haber ejecutado Entrenar.");
+        return;
+      }
+
+      setRows(perfil);
+      setSizes(Array.isArray(sizeTable) ? sizeTable : []);
+      setGlobalMessage("Perfil por cluster cargado.");
+    } catch (err) {
+      setGlobalError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (uploadId) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadId]);
+
+  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+  const fmt = (v) => {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n.toFixed(4);
+    return v ?? "—";
+  };
+
+  return (
+    <section style={{ height: "calc(100vh - 80px)", overflowY: "auto", padding: "20px", paddingBottom: "60px" }}>
+      <h2 style={{ fontSize: "18px", marginBottom: "12px", fontWeight: "600" }}>
+        Perfil promedio por cluster (Clientes)
+      </h2>
+
+      <p style={{ fontSize: "14px", color: "#9ca3af", marginBottom: "16px" }}>
+        Esta tabla es el equivalente a: <code>df.groupby("cluster_clientes")[cols].mean()</code>
+      </p>
+
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px", alignItems: "center" }}>
+        <PrimaryButton disabled={loading} onClick={load}>
+          {loading ? "Cargando..." : "Actualizar tabla"}
+        </PrimaryButton>
+
+        {uploadId && (
+          <span style={{ fontSize: "12px", color: "#9ca3af" }}>
+            upload_id: <b style={{ color: "#e5e7eb" }}>{uploadId}</b>
+          </span>
+        )}
+      </div>
+
+      <div style={{ border: "1px solid #334155", borderRadius: "12px", overflow: "hidden" }}>
+        <div style={{ overflowX: "auto", backgroundColor: "#0b1220" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px" }}>
+            <thead>
+              <tr style={{ backgroundColor: "#020617" }}>
+                {columns.map((c) => (
+                  <th
+                    key={c}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px",
+                      fontSize: "12px",
+                      color: "#cbd5e1",
+                      borderBottom: "1px solid #334155",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={Math.max(columns.length, 1)} style={{ padding: "14px", color: "#9ca3af" }}>
+                    Sin datos. Ejecuta Entrenar y luego vuelve a cargar.
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r, idx) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #1f2937" }}>
+                    {columns.map((c) => (
+                      <td
+                        key={c}
+                        style={{
+                          padding: "12px",
+                          fontSize: "13px",
+                          color: "#e5e7eb",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {fmt(r[c])}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ marginTop: "10px", fontSize: "12px", color: "#9ca3af" }}>
+        * Si quieres que el cluster sea el índice (como Colab), el campo normalmente viene como{" "}
+        <b>cluster_clientes</b>.
+      </div>
+
+      <h3 style={{ fontSize: "16px", fontWeight: "600", marginTop: "22px", marginBottom: "12px" }}>
+        Tamaño y porcentaje por cluster
+      </h3>
+
+      <div style={{ border: "1px solid #334155", borderRadius: "12px", overflow: "hidden" }}>
+        <div style={{ overflowX: "auto", backgroundColor: "#0b1220" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "520px" }}>
+            <thead>
+              <tr style={{ backgroundColor: "#020617" }}>
+                <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", color: "#cbd5e1", borderBottom: "1px solid #334155" }}>
+                  cluster_clientes
+                </th>
+                <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", color: "#cbd5e1", borderBottom: "1px solid #334155" }}>
+                  cantidad
+                </th>
+                <th style={{ textAlign: "left", padding: "12px", fontSize: "12px", color: "#cbd5e1", borderBottom: "1px solid #334155" }}>
+                  porcentaje
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {sizes.length === 0 ? (
+                <tr>
+                  <td colSpan={3} style={{ padding: "14px", color: "#9ca3af" }}>
+                    Sin datos. Ejecuta Entrenar y vuelve a cargar.
+                  </td>
+                </tr>
+              ) : (
+                sizes.map((r, idx) => (
+                  <tr key={idx} style={{ borderBottom: "1px solid #1f2937" }}>
+                    <td style={{ padding: "12px", fontSize: "13px", color: "#e5e7eb" }}>{r.cluster_clientes}</td>
+                    <td style={{ padding: "12px", fontSize: "13px", color: "#e5e7eb" }}>{r.cantidad}</td>
+                    <td style={{ padding: "12px", fontSize: "13px", color: "#e5e7eb" }}>
+                      {Number.isFinite(Number(r.porcentaje)) ? Number(r.porcentaje).toFixed(2) : "—"}%
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+    
   );
 }
 

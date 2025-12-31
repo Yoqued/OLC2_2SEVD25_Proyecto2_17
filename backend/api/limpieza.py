@@ -204,6 +204,29 @@ def entrenar_numerico(df: pd.DataFrame, cfg: dict):
         .to_dict(orient="records")
     )
 
+    # Tamaño y porcentaje de cluster
+    cluster_size = (
+        df["cluster_clientes"]
+        .value_counts()
+        .rename("cantidad")
+        .to_frame()
+    )
+
+    cluster_size["porcentaje"] = (
+        cluster_size["cantidad"] / cluster_size["cantidad"].sum() * 100
+    )
+
+    # A formato JSON-friendly
+    cluster_size_clientes = (
+        cluster_size
+        .reset_index()
+        .rename(columns={"index": "cluster_clientes"})
+        .sort_values("cluster_clientes")
+        .round({"porcentaje": 2})
+        .to_dict(orient="records")
+    )
+
+
     metrics_num = {
         "k_clientes": k_num,
         "max_iter": max_iter_num,
@@ -213,6 +236,7 @@ def entrenar_numerico(df: pd.DataFrame, cfg: dict):
         "calinski_clientes": ch_num,
         "davies_clientes": db_num,
         "perfil_clientes": perfil_clientes,
+        "cluster_size_clientes": cluster_size_clientes
     }
 
     return df, metrics_num
