@@ -339,3 +339,74 @@ Una vez que el modelo de K-Means ha sido entrenado y que cada cliente ha sido as
 * Por último, el índice de Davies-Bouldin analiza qué tan similares son los clusters entre sí. A diferencia de las métricas anteriores, en este caso valores más bajos indican un mejor resultado, ya que reflejan clusters más distintos y con menor solapamiento entre ellos.
 
 En conjunto, estas métricas nos permiten evaluar el clustering desde diferentes perspectivas y respaldar de manera objetiva la calidad del modelo entrenado. Gracias a ellas, podemos comparar distintas configuraciones de K-Means y justificar técnicamente las decisiones tomadas durante el proceso de segmentación de clientes.
+
+<br>
+<br>
+
+### Explicación de código de Clustering para reseñas
+
+#### Importación de librerías
+En esta parte del proyecto comenzamos a trabajar con el clustering de texto, específicamente con las reseñas que los clientes dejan sobre los productos. La idea principal fue analizar estas opiniones sin etiquetas previas y tratar de agruparlas automáticamente según su contenido, para identificar patrones, temas recurrentes y tipos de comentarios similares entre los clientes.
+
+Para esto, consideramos que primero era necesario transformar el texto en una representación numérica que pudiera ser entendida por un algoritmo de clustering. Analizamos distintas alternativas y creímos que la mejor decisión era utilizar sentence embeddings, ya que permiten capturar el significado general de una reseña completa y no solo la frecuencia de palabras individuales.
+
+```python
+from sentence_transformers import SentenceTransformer
+```
+
+
+Este módulo nos permitió utilizar un modelo de sentence embeddings que transforma cada reseña en un vector numérico, manteniendo la información semántica del texto. Consideramos que esta opción era adecuada porque las reseñas suelen ser frases cortas o párrafos breves, y este tipo de modelo funciona bien en ese contexto.
+
+```python
+from sklearn.preprocessing import normalize
+```
+
+
+Aunque el modelo de embeddings ya permite normalizar los vectores, incluimos esta importación para tener la opción de normalizar los datos en caso de ser necesario. La normalización es importante porque ayuda a que las distancias entre vectores sean comparables, especialmente cuando se trabaja con similitud coseno.
+
+```python
+from sklearn.cluster import MiniBatchKMeans
+```
+
+Para el proceso de clustering decidimos utilizar MiniBatchKMeans en lugar de KMeans tradicional. Consideramos esta decisión porque es un algoritmo más eficiente cuando se trabaja con grandes cantidades de datos y vectores de alta dimensión, como es el caso de los embeddings de texto. Aunque nuestro dataset no es extremadamente grande, creímos que era una buena práctica utilizar una versión más optimizada.
+
+```python
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+```
+
+Finalmente, importamos varias métricas internas de evaluación. Estas métricas nos permiten analizar qué tan bien se formaron los clusters, midiendo aspectos como la cohesión dentro de los grupos y la separación entre ellos. Consideramos importante incluir varias métricas y no solo una, para tener una visión más completa de la calidad del clustering realizado.
+
+<br>
+
+#### Preparación del corpus de texto
+
+Antes de aplicar cualquier técnica de clustering, consideramos que era fundamental limpiar y preparar correctamente el texto de las reseñas. Analizamos el dataset y nos dimos cuenta de que podían existir valores nulos, espacios en blanco o reseñas vacías que no aportaban información útil al análisis.
+
+```python
+text_series = df["texto_reseña"].astype(str).fillna("").str.strip()
+```
+
+En esta línea convertimos todas las reseñas a tipo texto para evitar problemas de tipo de dato. Además, reemplazamos los valores nulos por cadenas vacías y eliminamos espacios innecesarios al inicio y al final de cada reseña. Creímos que esto era la mejor decisión para trabajar con un texto más limpio y consistente.
+
+```python
+text_series = text_series[text_series != ""]
+```
+
+Luego, filtramos las reseñas que quedaron completamente vacías. Consideramos que este tipo de registros no aportan valor al modelo, ya que no contienen información semántica que pueda ser utilizada para el agrupamiento.
+
+```python
+df_text = df.loc[text_series.index].copy()
+```
+
+En este paso creamos un subconjunto del dataframe original que solo incluye las filas correspondientes a las reseñas válidas. Analizamos que era importante mantener esta relación para luego poder asignar correctamente los clusters al dataset original.
+
+```python
+corpus = text_series.tolist()
+```
+
+Finalmente, convertimos la serie de reseñas en una lista de textos, la cual utilizamos como corpus de entrada para el modelo de embeddings. Consideramos que esta estructura era la más adecuada para alimentar el modelo de procesamiento de lenguaje natural en los siguientes pasos.
+
+<br>
+
+#### Preparación del corpus de texto
+
