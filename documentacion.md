@@ -408,5 +408,180 @@ Finalmente, convertimos la serie de reseñas en una lista de textos, la cual uti
 
 <br>
 
-#### Preparación del corpus de texto
+#### Generación de embeddings de texto
+
+Una vez que ya teníamos el corpus de reseñas limpio, el siguiente paso fue transformar el texto en una forma que pudiera ser procesada por un algoritmo de clustering. Consideramos que los modelos de clustering trabajan con números, no con texto directamente, por lo que era necesario convertir cada reseña en un vector numérico.
+
+![alt text](img/vectoriales.png)
+
+Para lograr esto utilizamos sentence embeddings, que son representaciones vectoriales que capturan el significado general de una frase o un texto completo. A diferencia de otros enfoques más simples, como contar palabras, los embeddings permiten que reseñas con significados similares queden cercanas entre sí, incluso si no usan exactamente las mismas palabras. Analizamos esta opción y creímos que era la mejor decisión para trabajar con opiniones escritas por personas, donde el lenguaje suele variar bastante.
+
+```python
+model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+```
+
+En esta línea cargamos un modelo de SentenceTransformer. Elegimos el modelo paraphrase-multilingual-MiniLM-L12-v2 porque es ligero, eficiente y además soporta múltiples idiomas, lo cual consideramos importante ya que las reseñas pueden no estar todas en el mismo idioma o pueden incluir expresiones mixtas. Este modelo está entrenado para generar embeddings que representan el significado de frases completas, lo cual se ajusta bien a nuestro caso de uso.
+
+```python
+emb = model.encode(
+    corpus,
+    batch_size=64,
+    show_progress_bar=True,
+    convert_to_numpy=True,
+    normalize_embeddings=True
+)
+```
+
+En este bloque utilizamos el modelo para generar los embeddings de todas las reseñas del corpus. Cada reseña se transforma en un vector numérico de alta dimensión que representa su contenido semántico.
+
+El parámetro `batch_size=64` se utilizó para procesar las reseñas en grupos, lo que mejora el rendimiento y el uso de memoria. Decidimos trabajar de esta forma para hacer el proceso más eficiente, especialmente si el número de reseñas aumenta.
+
+La opción `show_progress_bar=True` permite visualizar el avance del proceso, lo cual es útil para tener retroalimentación durante la ejecución.
+
+Con `convert_to_numpy=True` convertimos los embeddings directamente en un arreglo de NumPy, facilitando su uso posterior con los algoritmos de clustering de scikit-learn.
+
+Finalmente, `normalize_embeddings=True` normaliza los vectores generados, dejándolos listos para trabajar con similitud coseno. Consideramos esta normalización importante porque ayuda a que el clustering se base principalmente en la dirección de los vectores (es decir, el significado del texto) y no en su magnitud.
+
+<br>
+
+### ¿Cómo funcionan los sentence embeddings y qué representa el arreglo emb?
+
+Luego de generar los embeddings, analizamos el contenido de la variable emb para entender exactamente qué información estamos produciendo y cómo se utiliza posteriormente en el clustering.
+
+Al imprimir emb, obtenemos un arreglo como el siguiente:
+
+```python
+array([[ 1.3313390e-02,  4.3749455e-02, -4.7333110e-02, ...,
+        -1.8189006e-05, -1.3221410e-02,  8.7186486e-02],
+       [ 4.9896564e-02,  4.8884626e-02, -1.8012041e-02, ...,
+        -5.0123066e-02,  4.4239413e-02,  4.1347556e-02],
+       [ 2.6467448e-02, -5.1053952e-02,  2.8883517e-04, ...,
+         4.5785517e-02,  4.9499784e-02, -1.5440427e-03],
+       ...,
+       [-5.1101249e-02,  5.9530366e-02, -2.5807638e-02, ...,
+         5.3966165e-02,  3.1159002e-02,  7.4818149e-02],
+       [-1.0184279e-02, -6.2871948e-02, -4.0177684e-02, ...,
+         9.5936947e-02,  5.1693674e-02,  1.3113023e-02],
+       [ 1.3313390e-02,  4.3749455e-02, -4.7333110e-02, ...,
+        -1.8189006e-05, -1.3221410e-02,  8.7186486e-02]], dtype=float32)
+```
+Consideramos importante entender qué significa esta estructura antes de aplicar cualquier algoritmo de clustering.
+
+
+**Vectorización del texto**
+
+Cada fila del arreglo emb representa una reseña del corpus, y cada columna representa una dimensión del embedding. En otras palabras:
+
+* 1 fila = 1 reseña
+* Cada reseña se convierte en un vector numérico
+* Cada vector captura el significado semántico del texto
+
+El modelo transforma frases escritas por personas en vectores de números reales (valores positivos y negativos). Estos números no representan palabras específicas, sino características latentes aprendidas por el modelo, relacionadas con el significado del texto.
+
+Por ejemplo, reseñas como:
+* "El paquete se tardó en llegar"
+* "La entrega fue muy lenta"
+
+aunque usen palabras diferentes, generan vectores muy similares entre sí, porque el modelo entiende que el significado es prácticamente el mismo. Esto es justamente lo que buscamos para el clustering.
+
+**Dimensionalidad del embedding**
+
+Cada vector tiene muchas dimensiones. Consideramos que esta alta dimensionalidad es necesaria para capturar matices del lenguaje como:
+
+* tono de la reseña,
+* intención del cliente,
+* queja, satisfacción o recomendación,
+* similitud temática entre textos.
+
+Aunque a simple vista los números del arreglo no parecen tener un significado interpretable por sí solos, el valor real está en las relaciones entre los vectores, no en cada número individual.
+
+
+**Normalización y similitud coseno**
+
+Al generar los embeddings utilizamos:
+
+`
+normalize_embeddings=True
+`
+
+Esto significa que cada vector queda normalizado, es decir, todos tienen la misma magnitud. Analizamos que esta decisión era importante porque el clustering se basa en qué tan similares son los textos entre sí, no en la magnitud del vector.
+
+Gracias a esto, podemos utilizar similitud coseno, que mide el ángulo entre dos vectores:
+
+* Ángulo pequeño - textos muy similares
+* Ángulo grande - textos distintos
+
+Este enfoque se adapta muy bien al análisis de lenguaje natural y fue una de las razones por las que creímos que este método era el más adecuado para agrupar reseñas.
+
+
+
+<br>
+
+### Justificación del uso de sentence embeddings
+
+Al momento de decidir cómo representar las reseñas en forma numérica, analizamos distintas alternativas comunes en procesamiento de lenguaje natural, como TF-IDF, modelos basados en spaCy y otras técnicas tradicionales de vectorización. Sin embargo, después de evaluar las características del problema, creímos que el uso de sentence embeddings era la mejor decisión para este proyecto.
+
+En primer lugar, TF-IDF se basa principalmente en la frecuencia de palabras dentro de los textos. Si bien es una técnica sencilla y ampliamente utilizada, consideramos que presenta una limitación importante en nuestro contexto: no captura el significado real de las frases. Dos reseñas pueden expresar la misma idea utilizando palabras diferentes y, aun así, TF-IDF las trataría como textos poco similares. Para un proyecto enfocado en opiniones de clientes, donde el lenguaje es muy variado, esta limitación puede afectar la calidad del clustering.
+
+Por otro lado, analizamos el uso de modelos como spaCy, los cuales ofrecen vectores a nivel de palabra. Aunque estos modelos son útiles para tareas específicas, consideramos que no eran la mejor opción para nuestro caso, ya que las reseñas suelen ser frases completas o pequeños párrafos. Trabajar a nivel de palabras implicaría perder el contexto general de la reseña o requerir un procesamiento adicional para combinar los vectores, lo cual complicaría el flujo sin aportar un beneficio claro.
+
+Los sentence embeddings permiten representar una reseña completa como un único vector que captura su significado global. Consideramos que esta característica es especialmente importante para nuestro proyecto, ya que buscamos agrupar reseñas por temas o intenciones similares (por ejemplo, quejas por envío, satisfacción con el producto o comentarios sobre precios), independientemente de las palabras exactas utilizadas.
+
+
+<br>
+
+### Clustering eficiente de reseñas (MiniBatchKMeans)
+Ya con los embeddings listos (o sea, cada reseña convertida en su vector numérico), el siguiente paso fue agrupar esas reseñas en clusters. La idea aquí es que reseñas que “dicen lo mismo” o hablan de temas parecidos queden en el mismo grupo.
+
+```python
+kmeans = MiniBatchKMeans(
+    n_clusters=k_text,
+    random_state=42,
+    batch_size=2048,
+    max_iter=200,
+    n_init="auto"
+)
+```
+Aquí elegimos MiniBatchKMeans en lugar de KMeans tradicional por una razón bien práctica: los embeddings son vectores de alta dimensión (muchas columnas), y si el dataset crece, KMeans puede volverse más lento y pesado.
+
+MiniBatchKMeans hace lo mismo que KMeans en esencia (agrupa por cercanía a centroides), pero en vez de usar todo el dataset en cada iteración, va entrenando por “pedacitos” (mini-batches).
+Nos pareció mejor porque:
+
+* Es más rápido 
+* Consume menos memoria
+
+
+**Hiperparámetros**
+
+`n_clusters=k_text`, cuántos grupos queremos.
+
+`random_state=42`,
+esto lo usamos para que el resultado sea reproducible. Es decir, si volvemos a correr el notebook, no queremos que los clusters cambien solo porque sí. Consideramos que para documentación y evaluación, esto es importante.
+
+`batch_size=2048`, este parámetro define cuántos puntos (reseñas) se usan por mini-lote. Elegimos 2048 porque es un número suficientemente grande como para que el modelo “vea” buena variedad en cada paso, pero sin llegar a ser tan grande que vuelva a ser casi como KMeans completo. En resumen: creímos que era un buen balance entre velocidad y estabilidad.
+
+`max_iter=200`, esto define cuántas vueltas máximas puede dar el algoritmo tratando de ajustar los centroides. Elegimos 200 porque normalmente es suficiente para converger en este tipo de problema. Consideramos que subirlo demasiado no siempre mejora mucho, solo hace que tarde más.
+
+`n_init="auto"`, esto controla cuántas veces se reinicia el algoritmo con centroides iniciales distintos para evitar quedar atrapado en una mala solución. Con "auto" dejamos que scikit-learn elija un valor adecuado según la versión, lo cual nos pareció práctico y seguro para no “hardcodear” un número que después podría no ser el mejor.
+
+
+**Entrenamiento y asignación de clusters**
+
+```python
+labels = kmeans.fit_predict(emb)
+```
+
+
+Aquí el modelo se entrena con emb (los vectores) y al mismo tiempo nos devuelve labels, que es básicamente un arreglo donde cada reseña queda marcada con el número del cluster al que pertenece (0, 1, 2, …, 5 si K=6).
+Lo que hace el algoritmo por dentro es:
+
+* coloca centroides iniciales,
+* asigna cada reseña al centroide más cercano,
+* recalcula los centroides,
+* repite hasta estabilizar.
+
+```python
+df_text["cluster_reseñas"] = labels
+```
+
 
