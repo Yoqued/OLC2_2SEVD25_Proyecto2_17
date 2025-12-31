@@ -59,7 +59,6 @@ export async function trainClusters(config) {
     body: JSON.stringify(config),
     credentials: "include",
   });
-
   return parseResponse(res);
 }
 
@@ -144,4 +143,15 @@ export async function exportReviews() {
 
 export async function exportSummary() {
   return downloadFile(`${BASE_URL}/export/summary/`, "resumen.json");
+}
+
+export async function getEvaluation(uploadId) {
+  const res = await fetch(`${BASE_URL}/model/evaluation/?upload_id=${encodeURIComponent(uploadId)}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Error cargando métricas");
+  return data;
 }
